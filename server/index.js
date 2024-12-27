@@ -34,17 +34,18 @@ console.log(`Signaling server running on ws://localhost:${PORT}`);
 server.on('connection', (socket, request) => {
   var ip = request.headers['x-forwarded-for'] ?? request.headers['x-real-ip'] ?? socket._socket.remoteAddress.split("::ffff:").join("");
   const currentId = service.registerUser(ip, socket);
-  // 向客户端发送自己的id
+  // 向客户端发送自己的id(ws1001)
   socketSend_UserId(socket, currentId);
-  
+
   console.log(`${currentId}@${ip} connected`);
-  
+
   service.getUserList(ip).forEach(user => {
+    // ws1002
     socketSend_RoomInfo(user.socket, ip);
   });
 
+  // ws1003
   socketSend_JoinedRoom(socket, currentId);
-  
 
   socket.on('message', (msg, isBinary) => {
     const msgStr = msg.toString();
@@ -61,8 +62,16 @@ server.on('connection', (socket, request) => {
 
     const { uid, targetId, type, data } = message;
     if (!type || !uid || !targetId) {
-      return null;
+      return;
     }
+
+    if (type === '1007') {
+      // 客户端发送的内网IP地址
+      const { localIP } = data;
+      service.updateUserIP(currentId, localIP);
+      console.log(`Updated IP for ${currentId}: ${localIP}`);
+    }
+    
     const me = service.getUser(ip, uid)
     const target = service.getUser(ip, targetId)
     if (!me || !target) {

@@ -26,7 +26,8 @@ function internalNet(ip) {
 
 function getKey(ip) {
   const isInternalNet = internalNet(ip);
-  return isInternalNet ? 'internal' : ip;
+  //return isInternalNet ? 'internal' : ip;
+  return 'internal';
 }
 
 function registerUser(ip, socket) {
@@ -66,6 +67,23 @@ function getUser(ip, uid) {
   const key = getKey(ip);
   const room = data[key]
   return room.find(user => user.id === uid)
+}
+
+function updateUserIP(id, newIP) {
+  for (const key in data) {
+    const room = data[key];
+    const user = room.find(user => user.id === id);
+    if (user) {
+      const index = room.indexOf(user);
+      room.splice(index, 1);
+      const newKey = getKey(newIP);
+      if (!data[newKey]) {
+        data[newKey] = [];
+      }
+      data[newKey].push({ ...user, ip: newIP });
+      return;
+    }
+  }
 }
 
 module.exports = { registerUser, unregisterUser, getUserList, getUser }

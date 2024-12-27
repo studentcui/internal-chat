@@ -338,3 +338,10 @@ pre {
   font-size: 28px;
   text-align: center;
 }
+
+.copy-icon {
+  cursor: pointer;
+  margin-left: 5px;
+  vertical-align: middle;
+  display: inline-block; /* Ensure the icon is displayed */
+}

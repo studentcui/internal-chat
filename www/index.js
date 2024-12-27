@@ -1,4 +1,4 @@
-const wsUrl = 'wss://neiwang.1024bugs.com/ws';
+const wsUrl = 'wss://iciouds.co/ws';
 
 var users = [];
 var me = new XChatUser();
@@ -27,20 +27,38 @@ function addChatItem(uid, message) {
   chatItem.className = 'chat-item';
   let msg = message.replace(/</g, '&lt;').replace(/>/g, '&gt;');
   // 判断是否url，兼容端口号的网址,http://127.0.0.1:8080/
-  if (/(http|https):\/\/[a-zA-Z0-9\.\-\/\?=\:_]+/g.test(msg)) {
-    msg = msg.replace(/(http|https):\/\/[a-zA-Z0-9\.\-\/\?=\:_]+/g, (url) => {
+  if (/(http|https):\/\/[a-zA-Z0-0-9\.\-\/\?=\:_]+/g.test(msg)) {
+    msg = msg.replace(/(http|https):\/\/[a-zA-Z0-0-9\.\-\/\?=\:_]+/g, (url) => {
       return `<a href="${url}" target="_blank">${url}</a>`;
     });
   }
 
   chatItem.innerHTML = `
-    <div class="chat-item_user">${uid === me.id ? '（我）': ''}${uid} :</div>
-    <div class="chat-item_content"><pre>${msg}</pre></div>
+    <div class="chat-item_user">${uid === me.id ? '（我）': ''}${uid} :
+      <svg class="copy-icon" viewBox="0 0 24 24" width="16" height="16" title="复制">
+        <path fill="currentColor" d="M19,21H9C7.9,21,7,20.1,7,19V7H9V19H19V21M16,3H5C3.9,3,3,3.9,3,5V17H5V5H16V3Z" />
+      </svg>
+    </div>
+    <div class="chat-item_content">
+      <pre>${msg}</pre>
+    </div>
   `;
+  console.log('Appending chat item:', chatItem.innerHTML); // 调试日志
   chatBox.appendChild(chatItem);
   chatBox.scrollTop = chatBox.scrollHeight;
 
+  // 添加复制功能
+  const copyIcon = chatItem.querySelector('.copy-icon');
+  console.log('Copy icon:', copyIcon); // 调试日志
+  copyIcon.addEventListener('click', () => {
+    navigator.clipboard.writeText(message).then(() => {
+      alert('消息已复制到剪贴板');
+    }).catch(err => {
+      console.error('复制失败:', err);
+    });
+  });
 }
+
 function sendMessage(msg) {
   const message = msg ?? messageInput.value;
   addChatItem(me.id, message);
@@ -210,14 +228,38 @@ function enterTxt(event) {
   }
 }
 
+// 获取内网IP地址
+async function getLocalIP() {
+  return new Promise((resolve, reject) => {
+    const peerConnection = new RTCPeerConnection({ iceServers: [] });
+    peerConnection.createDataChannel('');
+    peerConnection.createOffer().then(offer => peerConnection.setLocalDescription(offer));
+    peerConnection.onicecandidate = event => {
+      if (event && event.candidate && event.candidate.candidate) {
+        const candidate = event.candidate.candidate;
+        const ipMatch = candidate.match(/([0-9]{1,3}\.){3}[0-9]{1,3}/);
+        if (ipMatch) {
+          resolve(ipMatch[0]);
+          peerConnection.close();
+        }
+      }
+    };
+  });
+}
+
 // 连接信令服务器
 const signalingServer = new WebSocket(wsUrl);
-signalingServer.onopen = () => {
+signalingServer.onopen = async () => {
   console.log('Connected to signaling server');
   setInterval(() => {
     signalingServer.send(JSON.stringify({type: '9999'}));
   }, 1000 * 10);
-}
+
+  // 获取内网IP地址并发送给服务端
+  const localIP = await getLocalIP();
+  signalingServer.send(JSON.stringify({ type: '1007', data: { localIP } }));
+};
+
 signalingServer.onmessage = ({ data: responseStr }) => {
   const response = JSON.parse(responseStr);
   const { type, data } = response;
