@@ -52,7 +52,7 @@ function addChatItem(uid, message) {
   console.log('Copy icon:', copyIcon); // 调试日志
   copyIcon.addEventListener('click', () => {
     navigator.clipboard.writeText(message).then(() => {
-      alert('消息已复制到剪贴板');
+      showToast('消息已复制到剪贴板');
     }).catch(err => {
       console.error('复制失败:', err);
     });
@@ -397,6 +397,14 @@ async function confirmSendFile() {
   pendingFile = null;
 }
 
+function showToast(message) {
+  const toast = document.getElementById("toast");
+  toast.textContent = message;
+  toast.className = "toast show";
+  setTimeout(() => {
+    toast.className = toast.className.replace("show", "");
+  }, 3000);
+}
 
 let droptarget = document.body;
     
